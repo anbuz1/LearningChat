@@ -1,5 +1,3 @@
-import sun.rmi.runtime.Log;
-
 import java.io.*;
 import java.net.Socket;
 import java.util.logging.Level;
@@ -27,51 +25,20 @@ public class Server extends Thread implements Serializable {
     @Override
     public void run() {
 
-        String clientInfo = socket.getInetAddress().toString().replace("/","") + ":" + socket.getPort();
+        String clientInfo = socket.getInetAddress().toString().replace("/", "") + ":" + socket.getPort();
         System.out.println("Connect user: " + clientInfo);
-        try{
-            String incomingServerKey;
-            String[] keys;
-            String error = null;
-            String forIdent = rd.readLine();
+        try {
+            String error = authorization();
 
-            if(forIdent.contains("|")){
-                keys = forIdent.split("\\|");
-                incomingServerKey = keys[0];
-
-                if(keys.length==2) client = Main.getClient(keys[1]);
-
-                if(!incomingServerKey.equals(serverKey)) {
-                    error = Main.properties.getProperty("status_error1");
-                }
-                else if (client == null){
-
-                    if(Main.serverMode.equals("1")){
-                        createNewClient(rd,writer);
-
-                        if(client==null){
-                            error = Main.properties.getProperty("status_error3");
-                        }
-                    }
-                    if(Main.serverMode.equals("2")){
-                        error = Main.properties.getProperty("status_error2");
-                    }
-                }
-
-            }else {
-                error = Main.properties.getProperty("status_error2");
-            }
-
-
-            if(error != null){
+            if (error != null) {
                 writer.println(error);
-            }else {
+            } else {
                 LOG.log(Level.SEVERE, "Authorization successful: " + clientInfo);
                 writer.println(Main.properties.getProperty("status_ok"));
                 client.setStatus(true);
 
                 String request;
-                while ((request = rd.readLine()) != null){
+                while ((request = rd.readLine()) != null) {
 
 
 
@@ -86,5 +53,39 @@ public class Server extends Thread implements Serializable {
     }
 
     private void createNewClient(BufferedReader rd, PrintWriter writer) {
+    }
+
+    private String authorization() throws IOException {
+        String incomingServerKey;
+        String[] keys;
+        String forIdentity = rd.readLine();
+
+        if (!forIdentity.contains("|")) {
+            return Main.properties.getProperty("status_error2");
+        }
+
+        keys = forIdentity.split("\\|");
+        incomingServerKey = keys[0];
+
+        if (keys.length == 2) {
+            client = Main.getClient(keys[1]);
+        }
+
+        if (!incomingServerKey.equals(serverKey)) {
+            return Main.properties.getProperty("status_error1");
+        }
+
+        if (client == null) {
+            if (Main.serverMode.equals("2")) {
+                return Main.properties.getProperty("status_error2");
+            }
+
+            createNewClient(rd, writer);
+            if (client == null) {
+                return Main.properties.getProperty("status_error3");
+            }
+        }
+
+        return null;
     }
 }
