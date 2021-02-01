@@ -15,7 +15,7 @@ public class Main {
 
     private static Map<String, Client> clientList = new HashMap<>();
     private static List<Server> serverList = new ArrayList<>();
-    private static StringBuilder chat = new StringBuilder();
+    private volatile static StringBuilder chat = new StringBuilder();
     private static SimpleDateFormat dt = new SimpleDateFormat("dd MMMM HH:mm:ss");
     protected static String serverPort;
     protected static String serverMode;
@@ -98,7 +98,6 @@ public class Main {
             while (true) {
 
 
-
                 Socket clientSocket = server.accept();
                 Server newServer = new Server(clientSocket);
                 serverList.add(newServer);
@@ -115,7 +114,42 @@ public class Main {
         LOG.log(Level.ALL, "Server mode: " + serverMode);
     }
 
-    protected static Client getClient(String key){
+    protected static Client getClient(String key) {
         return Main.clientList.get(key);
+    }
+
+    protected static String getActiveClientList() {
+        StringBuilder clList = new StringBuilder();
+
+        clientList.forEach((key, val) -> {
+            if (val.getStatus()) {
+                clList.append("<font color=red>" + val.getNickname())
+                        .append("online" + "</font>")
+                        .append("</br>");
+
+            } else {
+                clList.append("<font color=grey>" + val.getNickname())
+                        .append("offline" + "</font>")
+                        .append("</br>");
+
+            }
+        });
+
+
+        return clList.toString();
+    }
+
+    public static String getChat() {
+        return chat.toString();
+    }
+
+    public static void writeToChat(String request, String nickname) {
+        String dtime = dt.format(new Date());
+        String  mess = "<font size=2 color=red>" + "(" + dtime + ")  " + "</font><font size=3 color=blue>" + nickname + ": </font></br>" + request + "</br></br>";
+        chat.append(mess);
+        for (Server server : serverList) {
+            server.writeMessage(mess);
+        }
+
     }
 }

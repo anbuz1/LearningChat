@@ -22,6 +22,27 @@ public class Server extends Thread implements Serializable {
         writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
     }
 
+    public void writeMessage(String mess) {
+    }
+
+    public enum Const {
+        LIST_CLIENT(Main.properties.getProperty("list_client")),
+        SERVICE_KEY(Main.properties.getProperty("service_key")),
+        DEFAULT("");
+
+        private String key;
+
+        Const(String key) {
+            this.key = key;
+        }
+
+
+        @Override
+        public String toString() {
+            return this.key;
+        }
+    }
+
     @Override
     public void run() {
 
@@ -38,8 +59,32 @@ public class Server extends Thread implements Serializable {
                 client.setStatus(true);
 
                 String request;
-                while ((request = rd.readLine()) != null) {
 
+                while ((request = rd.readLine()) != null) {
+                    Const aConst = getConstByKey(request);
+
+                    switch (aConst) {
+                        case LIST_CLIENT: {
+                            synchronized (Main.getActiveClientList()){
+                                writer.println(Main.getActiveClientList());
+                            }
+                        }
+                        break;
+
+                        case SERVICE_KEY: {
+                            String chat = Main.getChat();
+                            if(chat.length()>0){
+                                writer.println(chat);
+                            }else writer.println("Welcome to chat</br>");
+
+                        }
+                        break;
+
+                        case DEFAULT: {
+                            Main.writeToChat(request, client.getNickname());
+                        }
+                        break;
+                    }
 
 
                 }
@@ -88,4 +133,12 @@ public class Server extends Thread implements Serializable {
 
         return null;
     }
+
+    Const getConstByKey(String key) {
+        for (Const value : Const.values()) {
+            if (value.key.equals(key)) return value;
+        }
+        return Const.DEFAULT;
+    }
+
 }

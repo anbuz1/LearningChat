@@ -22,11 +22,13 @@ public class Client implements Serializable {
         return personalKey;
     }
 
-    public boolean isStatus() {
+    public boolean getStatus() {
         return status;
     }
 
     public void setStatus(boolean status) {
         this.status = status;
     }
+
+
 }
