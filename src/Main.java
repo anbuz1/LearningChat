@@ -1,4 +1,5 @@
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -16,12 +17,14 @@ public class Main {
     private static Map<String, Client> clientList = new HashMap<>();
     private static List<Server> serverList = new ArrayList<>();
     private volatile static StringBuilder chat = new StringBuilder();
+    private volatile static StringBuilder chatLog = new StringBuilder();
     private static SimpleDateFormat dt = new SimpleDateFormat("dd MMMM HH:mm:ss");
     protected static String serverPort;
     protected static String serverMode;
     private static String serverKey = "4f084e2ed5b7a422733b240320a9e223";
 
     private static final Logger LOG = Logger.getLogger(Server.class.getName());
+    private static FileWriter logFw;
 
 
     static {
@@ -41,6 +44,13 @@ public class Main {
             } catch (IOException e) {
                 LOG.log(Level.ALL, e.getMessage());
             }
+        }
+
+        String logFilePath = System.getProperty("user.dir") + "/log/chat.log";
+        try {
+            logFw = new FileWriter(logFilePath, true);
+        } catch (IOException e) {
+            LOG.log(Level.SEVERE, "chat.log не найден");
         }
     }
 
@@ -123,13 +133,13 @@ public class Main {
 
         clientList.forEach((key, val) -> {
             if (val.getStatus()) {
-                clList.append("<font color=red>" + val.getNickname())
-                        .append("online" + "</font>")
+                clList.append("<font color=red>").append(val.getNickname())
+                        .append(" online" + "</font>")
                         .append("</br>");
 
             } else {
-                clList.append("<font color=grey>" + val.getNickname())
-                        .append("offline" + "</font>")
+                clList.append("<font color=grey>").append(val.getNickname())
+                        .append(" offline" + "</font>")
                         .append("</br>");
 
             }
@@ -145,11 +155,29 @@ public class Main {
 
     public static void writeToChat(String request, String nickname) {
         String dtime = dt.format(new Date());
-        String  mess = "<font size=2 color=red>" + "(" + dtime + ")  " + "</font><font size=3 color=blue>" + nickname + ": </font></br>" + request + "</br></br>";
+        String mess = "<font size=2 color=red>" + "(" + dtime + ")  " + "</font><font size=3 color=blue>" + nickname + ": </font></br>" + request + "</br></br>";
         chat.append(mess);
+
+        String messLog = dtime + " " + nickname + "\n" + request + "\n";
+        chatLog.append(messLog);
+
         for (Server server : serverList) {
             server.writeMessage(mess);
         }
 
+        saveChatToLogFile();
+    }
+
+    private static void saveChatToLogFile() {
+        //todo подумать как сохранить лог если он так и не достиг нужного размера
+        if (chatLog.toString().split("\n").length > 4) {
+            try {
+                logFw.write(chatLog.toString());
+                logFw.flush();
+                chatLog.setLength(0);
+            } catch (IOException e) {
+                LOG.log(Level.SEVERE, "не получается записать сообщения в chat.log");
+            }
+        }
     }
 }
