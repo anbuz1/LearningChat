@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -22,9 +24,10 @@ public class Main {
     protected static String serverPort;
     protected static String serverMode;
     private static String serverKey = "4f084e2ed5b7a422733b240320a9e223";
+    private static String logFilePath;
 
     private static final Logger LOG = Logger.getLogger(Server.class.getName());
-    private static FileWriter logFw;
+    private static int counterLogLines;
 
 
     static {
@@ -46,12 +49,15 @@ public class Main {
             }
         }
 
-        String logFilePath = System.getProperty("user.dir") + "/log/chat.log";
-        try {
-            logFw = new FileWriter(logFilePath, true);
-        } catch (IOException e) {
-            LOG.log(Level.SEVERE, "chat.log не найден");
+        logFilePath = System.getProperty("user.dir") + "/log/chat.log";
+        if(!Files.exists(Paths.get(logFilePath))){
+            try {
+                Files.createFile(Paths.get(logFilePath));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+        counterLogLines = 0;
     }
 
     /**
@@ -60,6 +66,20 @@ public class Main {
      *             3. Режим сервера
      */
     public static void main(String[] args) {
+
+        Runnable task = () -> {
+            Scanner in = new Scanner(System.in);
+            while (true){
+                String input = in.nextLine();
+                if(input.equals("stop")) {
+                    LOG.log(Level.SEVERE, "Server stopped");
+                    System.exit(1);
+                }
+                if (input.equals("edit")) editClientList(in);
+            }
+        };
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        executorService.submit(task);
 
         if (args.length > 0) {
 
@@ -124,6 +144,9 @@ public class Main {
         LOG.log(Level.ALL, "Server mode: " + serverMode);
     }
 
+    private static void editClientList(Scanner in) {
+    }
+
     protected static Client getClient(String key) {
         return Main.clientList.get(key);
     }
@@ -158,26 +181,26 @@ public class Main {
         String mess = "<font size=2 color=red>" + "(" + dtime + ")  " + "</font><font size=3 color=blue>" + nickname + ": </font></br>" + request + "</br></br>";
         chat.append(mess);
 
-        String messLog = dtime + " " + nickname + "\n" + request + "\n";
+        String messLog = dtime + " " + nickname + ": " + request + "\n";
         chatLog.append(messLog);
-
+        counterLogLines++;
         for (Server server : serverList) {
             server.writeMessage(mess);
         }
 
-        saveChatToLogFile();
+        if (counterLogLines == Integer.parseInt(properties.getProperty("max_log_values"))) saveChatToLogFile();
     }
 
     private static void saveChatToLogFile() {
         //todo подумать как сохранить лог если он так и не достиг нужного размера
-        if (chatLog.toString().split("\n").length > 4) {
-            try {
-                logFw.write(chatLog.toString());
-                logFw.flush();
-                chatLog.setLength(0);
-            } catch (IOException e) {
-                LOG.log(Level.SEVERE, "не получается записать сообщения в chat.log");
-            }
+        try(FileWriter logFw = new FileWriter(logFilePath, true)) {
+            logFw.write(chatLog.toString());
+            logFw.flush();
+            chatLog.setLength(0);
+            counterLogLines = 0;
+        } catch (IOException e) {
+            LOG.log(Level.SEVERE, e.getMessage());
         }
+
     }
 }
