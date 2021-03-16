@@ -5,6 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -145,6 +146,83 @@ public class Main {
     }
 
     private static void editClientList(Scanner in) {
+        showActions();
+        while (true){
+            String input = in.nextLine();
+            if(input.equals("1")) {
+                createNewUser(in);
+            }
+            if(input.equals("2")) {
+                deleteUser(in);
+            }
+            if(input.equals("3")) {
+                editUser(in);
+            }
+            if(input.equals("4")) {
+                System.out.println("Enter command:");
+                break;
+            }
+        }
+    }
+
+    private static void showActions() {
+        int index_number = 1;
+        System.out.println("----------------------------------------------------------------------");
+        for (String personalKey : clientList.keySet()) {
+            System.out.printf("%-10d%-20s%40s%n", index_number, clientList.get(personalKey).getNickname(), personalKey);
+            index_number++;
+        }
+        System.out.println("----------------------------------------------------------------------");
+        System.out.println();
+        System.out.println("Select actions:");
+        System.out.println("1 - Create new user");
+        System.out.println("2 - Delete user");
+        System.out.println("3 - Edit user name");
+        System.out.println("4 - Exit edit mode");
+    }
+
+    private static void createNewUser(Scanner in) {
+        System.out.println("Enter user name:");
+        String nickName = in.nextLine();
+        String personalKey = generate();
+        clientList.put(personalKey, new Client(nickName, personalKey));
+        System.out.println("Success create new user: " + nickName + " key: " + personalKey);
+        System.out.println();
+        showActions();
+    }
+
+    private static void deleteUser(Scanner in) {
+        System.out.println("Enter user key:");
+        String personalKey = in.nextLine();
+        String nickName = clientList.get(personalKey).getNickname();
+        clientList.remove(personalKey);
+        System.out.println("Success delete user: " + nickName + " key: " + personalKey);
+        System.out.println();
+        showActions();
+    }
+
+    private static void editUser(Scanner in) {
+        System.out.println("Enter user key:");
+        String personalKey = in.nextLine();
+        System.out.println("Enter new name:");
+        String nickName = in.nextLine();
+        Client client = clientList.get(personalKey);
+        client.setNickname(nickName);
+        System.out.println("Success edited. New user name: " + nickName + " key: " + personalKey);
+        System.out.println();
+        showActions();
+    }
+
+    public static String generate() {
+        SecureRandom random = new SecureRandom();
+        byte[] values = random.generateSeed(16);
+        random.nextBytes(values);
+
+        StringBuilder sb = new StringBuilder();
+        for (byte b : values) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 
     protected static Client getClient(String key) {
