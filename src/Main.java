@@ -1,6 +1,4 @@
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -159,8 +157,12 @@ public class Main {
                 editUser(in);
             }
             if(input.equals("4")) {
+                System.out.println("Exit from editmode");
                 System.out.println("Enter command:");
                 break;
+            }else{
+                System.out.println("Wrong input parameter. Please try again.");
+                showActions();
             }
         }
     }
@@ -186,6 +188,7 @@ public class Main {
         String nickName = in.nextLine();
         String personalKey = generate();
         clientList.put(personalKey, new Client(nickName, personalKey));
+        serializeClientList();
         System.out.println("Success create new user: " + nickName + " key: " + personalKey);
         System.out.println();
         showActions();
@@ -196,6 +199,7 @@ public class Main {
         String personalKey = in.nextLine();
         String nickName = clientList.get(personalKey).getNickname();
         clientList.remove(personalKey);
+        serializeClientList();
         System.out.println("Success delete user: " + nickName + " key: " + personalKey);
         System.out.println();
         showActions();
@@ -207,6 +211,7 @@ public class Main {
         System.out.println("Enter new name:");
         String nickName = in.nextLine();
         Client client = clientList.get(personalKey);
+        serializeClientList();
         client.setNickname(nickName);
         System.out.println("Success edited. New user name: " + nickName + " key: " + personalKey);
         System.out.println();
@@ -281,4 +286,20 @@ public class Main {
         }
 
     }
+
+    static void serializeClientList() {
+
+        try {
+            FileOutputStream outputStream = new FileOutputStream(System.getProperty("user.dir") + "/properties/Client.lst");
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+            objectOutputStream.writeObject(clientList);
+            objectOutputStream.close();
+            outputStream.close();
+        } catch (IOException e) {
+            LOG.log(Level.SEVERE, e.getMessage());
+        }
+
+    }
+
+
 }
