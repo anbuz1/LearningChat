@@ -16,14 +16,14 @@ public class Main {
     static Properties properties = new Properties();
 
     private static Map<String, Client> clientList = new HashMap<>();
-    private static List<Server> serverList = new ArrayList<>();
-    private volatile static StringBuilder chat = new StringBuilder();
-    private volatile static StringBuilder chatLog = new StringBuilder();
-    private static SimpleDateFormat dt = new SimpleDateFormat("dd MMMM HH:mm:ss");
+    private static final List<Server> serverList = new ArrayList<>();
+    private static final StringBuilder chat = new StringBuilder();
+    private static final StringBuilder chatLog = new StringBuilder();
+    private static final SimpleDateFormat dt = new SimpleDateFormat("dd MMMM HH:mm:ss");
     protected static String serverPort;
     protected static String serverMode;
     private static String serverKey = "4f084e2ed5b7a422733b240320a9e223";
-    private static String logFilePath;
+    private static final String logFilePath;
 
     private static final Logger LOG = Logger.getLogger(Server.class.getName());
     private static int counterLogLines;
@@ -56,6 +56,17 @@ public class Main {
                 e.printStackTrace();
             }
         }
+
+        try {
+            FileInputStream inputStream = new FileInputStream(System.getProperty("user.dir") + "/properties/Client.lst");
+            ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+            clientList = (Map<String, Client>) objectInputStream.readObject();
+            objectInputStream.close();
+            inputStream.close();
+        } catch (IOException | ClassNotFoundException e) {
+            LOG.log(Level.SEVERE, e.getMessage());
+        }
+
         counterLogLines = 0;
     }
 
