@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,6 +24,11 @@ public class Server extends Thread implements Serializable {
     }
 
     public void writeMessage(String mess) {
+        writer.println(mess);
+    }
+
+    public Client getClient() {
+        return client;
     }
 
     public enum Const {
@@ -97,7 +103,35 @@ public class Server extends Thread implements Serializable {
         }
     }
 
-    private void createNewClient(BufferedReader rd, PrintWriter writer) {
+    private void createNewClient(BufferedReader rd, PrintWriter writer) throws IOException {
+        String key = Main.generate();
+        String newClient = "";
+        Collection<Client> names = Main.getClientList().values();
+        boolean flag = true;
+
+        writer.println(Main.properties.getProperty("status_registration"));
+
+
+        while (flag) {
+            newClient = rd.readLine();
+
+
+            String finalNewClient = newClient;
+            flag = names.stream().anyMatch(x -> x.getNickname().equals(finalNewClient));
+
+            if (flag) {
+                writer.println(Main.properties.getProperty("status_error3"));
+            } else writer.println(Main.properties.getProperty("status_ok"));
+        }
+        rd.readLine();
+        writer.println(key);
+
+
+        client = new Client(newClient, key);
+
+        Main.addClientList(client);
+        Main.serializeClientList();
+
     }
 
     private String authorization() throws IOException {
