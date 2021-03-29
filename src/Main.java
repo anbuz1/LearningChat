@@ -8,6 +8,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -15,7 +17,7 @@ import java.util.logging.Logger;
 public class Main {
     static Properties properties = new Properties();
 
-    private static Map<String, Client> clientList = new HashMap<>();
+    private static Map<String, Client> clientList;
     private static final List<Server> serverList = new ArrayList<>();
     private static final StringBuilder chat = new StringBuilder();
     private static final StringBuilder chatLog = new StringBuilder();
@@ -64,16 +66,7 @@ public class Main {
             }
         }
 
-        try {
-            FileInputStream inputStream = new FileInputStream(System.getProperty("user.dir") + "/properties/Client.lst");
-            ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-            clientList = (Map<String, Client>) objectInputStream.readObject();
-            objectInputStream.close();
-            inputStream.close();
-        } catch (IOException | ClassNotFoundException e) {
-            LOG.log(Level.SEVERE, e.getMessage());
-        }
-
+        clientList = deserializeClientList();
         counterLogLines = 0;
     }
 
@@ -97,6 +90,25 @@ public class Main {
         };
         ExecutorService executorService = Executors.newCachedThreadPool();
         executorService.submit(task);
+
+        Runnable task2 = () -> {
+
+            clientList.forEach((key, val) -> {
+                val.setStatus(false);
+            });
+            if (serverList.size() > 0) {
+                for (Server server : serverList) {
+                    server.getClient().setStatus(true);
+                }
+                for (Server server : serverList) {
+                    server.writeMessage("73285b2e2392a400a2323" + getActiveClients());
+                }
+            }
+        };
+
+        ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+        service.scheduleWithFixedDelay(task2, 0, 5, TimeUnit.SECONDS);
+
 
         if (args.length > 0) {
 
@@ -159,6 +171,28 @@ public class Main {
 
         LOG.log(Level.ALL, "Server port: " + serverPort);
         LOG.log(Level.ALL, "Server mode: " + serverMode);
+    }
+
+    private static String getActiveClients() {
+        StringBuilder clList = new StringBuilder();
+
+
+        clientList.forEach((key, val) ->
+        {
+            if (val.getStatus()) {
+                clList.append("<font color=red>" + val.getNickname())
+                        .append("(online)" + "</font>")
+                        .append("</br>");
+            } else {
+                clList.append("<font color=grey>" + val.getNickname())
+                        .append("(offline)" + "</font>")
+                        .append("</br>");
+            }
+
+        });
+
+        return clList.toString();
+
     }
 
     private static void editClientList(Scanner in) {
@@ -307,17 +341,33 @@ public class Main {
 
     static void serializeClientList() {
 
-        try {
-            FileOutputStream outputStream = new FileOutputStream(System.getProperty("user.dir") + "/properties/Client.lst");
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+        try (FileOutputStream outputStream = new FileOutputStream(System.getProperty("user.dir") + "/properties/Client.lst");
+             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream))
+        {
             objectOutputStream.writeObject(clientList);
-            objectOutputStream.close();
-            outputStream.close();
         } catch (IOException e) {
             LOG.log(Level.SEVERE, e.getMessage());
         }
 
     }
 
+    static Map<String, Client> deserializeClientList() {
+        Map<String, Client> clientList = new HashMap<>();
+        try (FileInputStream inputStream = new FileInputStream(System.getProperty("user.dir") + "/properties/Client.lst");
+             ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
+            clientList = (Map<String, Client>) objectInputStream.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            LOG.log(Level.SEVERE, e.getMessage());
+            return clientList;
+        }
+        return clientList;
+    }
 
+    public static Map<String, Client> getClientList() {
+        return clientList;
+    }
+
+    public static void addClientList(Client client) {
+        clientList.put(client.getPersonalKey(),client);
+    }
 }
