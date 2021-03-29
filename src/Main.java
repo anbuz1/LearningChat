@@ -31,11 +31,18 @@ public class Main {
 
     static {
         String pathToLogProperties = System.getProperty("user.dir") + "/properties/logging.properties";
+        if (!Files.exists(Paths.get(pathToLogProperties))) {
+            try {
+                Files.createDirectories(Paths.get(System.getProperty("user.dir") + "/properties/"));
+            } catch (IOException e) {
+                LOG.log(Level.SEVERE, e.getMessage());
+            }
+        }
         if (Files.exists(Paths.get(pathToLogProperties))) {
             try {
                 LogManager.getLogManager().readConfiguration(new FileInputStream(pathToLogProperties));
             } catch (IOException e) {
-                e.printStackTrace();
+                LOG.log(Level.SEVERE, e.getMessage());
             }
         }
 
@@ -44,16 +51,16 @@ public class Main {
             try {
                 properties.load(new FileInputStream(configFilePath));
             } catch (IOException e) {
-                LOG.log(Level.ALL, e.getMessage());
+                LOG.log(Level.SEVERE, e.getMessage());
             }
         }
 
         logFilePath = System.getProperty("user.dir") + "/log/chat.log";
-        if(!Files.exists(Paths.get(logFilePath))){
+        if (!Files.exists(Paths.get(logFilePath))) {
             try {
                 Files.createFile(Paths.get(logFilePath));
             } catch (IOException e) {
-                e.printStackTrace();
+                LOG.log(Level.SEVERE, e.getMessage());
             }
         }
 
@@ -79,9 +86,9 @@ public class Main {
 
         Runnable task = () -> {
             Scanner in = new Scanner(System.in);
-            while (true){
+            while (true) {
                 String input = in.nextLine();
-                if(input.equals("stop")) {
+                if (input.equals("stop")) {
                     LOG.log(Level.SEVERE, "Server stopped");
                     System.exit(1);
                 }
@@ -156,22 +163,22 @@ public class Main {
 
     private static void editClientList(Scanner in) {
         showActions();
-        while (true){
+        while (true) {
             String input = in.nextLine();
-            if(input.equals("1")) {
+            if (input.equals("1")) {
                 createNewUser(in);
             }
-            if(input.equals("2")) {
+            if (input.equals("2")) {
                 deleteUser(in);
             }
-            if(input.equals("3")) {
+            if (input.equals("3")) {
                 editUser(in);
             }
-            if(input.equals("4")) {
+            if (input.equals("4")) {
                 System.out.println("Exit from editmode");
                 System.out.println("Enter command:");
                 break;
-            }else{
+            } else {
                 System.out.println("Wrong input parameter. Please try again.");
                 showActions();
             }
@@ -287,7 +294,7 @@ public class Main {
 
     private static void saveChatToLogFile() {
         //todo подумать как сохранить лог если он так и не достиг нужного размера
-        try(FileWriter logFw = new FileWriter(logFilePath, true)) {
+        try (FileWriter logFw = new FileWriter(logFilePath, true)) {
             logFw.write(chatLog.toString());
             logFw.flush();
             chatLog.setLength(0);
